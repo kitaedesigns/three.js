@@ -20,7 +20,7 @@
 
 		<video id="video" loop crossOrigin="anonymous" playsinline style="display:none">
 			<source src="textures/sintel.ogv" type='video/ogg; codecs="theora, vorbis"'>
-			<source src="https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/researchstream.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+			<source src="https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/1711554955329_ssstwitter.com_1711388588198.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
 		</video>
 
 		<script type="importmap">
@@ -90,15 +90,20 @@
 
 				scene = new THREE.Scene();
 
-				const light = new THREE.DirectionalLight( 0xffffff, 3 );
-				light.position.set( 0.5, 1, 1 ).normalize();
+				const light = new THREE.DirectionalLight( 0xffffff, 1 );
+				light.position.set( 0.5, 10, 1 ).normalize();
 				scene.add( light );
+
+
+				const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+				scene.add(ambientLight);
+
 
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.toneMapping = THREE.ACESFilmicToneMapping;
-				renderer.toneMappingExposure = 1;
+				renderer.toneMappingExposure = .9;
 				container.appendChild( renderer.domElement );
 
 
@@ -115,70 +120,17 @@
 				texture = new THREE.VideoTexture( video );
 				texture.colorSpace = THREE.SRGBColorSpace;
 				texture.flipY = false;
-
+				texture.minFilter = THREE.LinearFilter;
 				
 
-				// let i, j, ox, oy, geometry;
-
-				// const ux = 1 / xgrid;
-				// const uy = 1 / ygrid;
-
-				// const xsize = 480 / xgrid;
-				// const ysize = 204 / ygrid;
-
-				// const parameters = { color: 0xffffff, map: texture };
-
-				// cube_count = 0;
-
 				
-
-
-				// for ( i = 0; i < xgrid; i ++ ) {
-
-				// 	for ( j = 0; j < ygrid; j ++ ) {
-
-				// 		ox = i;
-				// 		oy = j;
-
-				// 		geometry = new THREE.BoxGeometry( xsize, ysize, xsize );
-
-				// 		change_uvs( geometry, ux, uy, ox, oy );
-
-				// 		materials[ cube_count ] = new THREE.MeshLambertMaterial( parameters );
-
-				// 		material = materials[ cube_count ];
-
-				// 		material.hue = i / xgrid;
-				// 		material.saturation = 1 - j / ygrid;
-
-				// 		material.color.setHSL( material.hue, material.saturation, 0.5 );
-
-				// 		mesh = new THREE.Mesh( geometry, material );
-
-				// 		mesh.position.x = ( i - xgrid / 2 ) * xsize;
-				// 		mesh.position.y = ( j - ygrid / 2 ) * ysize;
-				// 		mesh.position.z = 0;
-
-				// 		mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
-
-				// 		scene.add( mesh );
-
-				// 		mesh.dx = 0.001 * ( 0.5 - Math.random() );
-				// 		mesh.dy = 0.001 * ( 0.5 - Math.random() );
-
-				// 		meshes[ cube_count ] = mesh;
-
-				// 		cube_count += 1;
-
-				// 	}
-
-				// }
 				new RGBELoader()
 					.setPath( 'textures/equirectangular/' )
 					.load( 'royal_esplanade_1k.hdr', function ( envtexture ) {
 
 						envtexture.mapping = THREE.EquirectangularReflectionMapping;
-
+						scene.environmentRotation = 0,3.14,0;
+						scene.backgroundRotation = 0,3.14,0;
 						scene.background = envtexture;
 						scene.environment = envtexture;
 
@@ -187,23 +139,30 @@
 						// model
 
 
-						const loader = new GLTFLoader().setPath( 'https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/researchstream_separate.glb' );
-						loader.load( 'https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/researchstream_separate.glb', async function ( gltf ) {
+						const loader = new GLTFLoader().setPath( 'https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/video_gallery-v4.glb' );
+						loader.load( 'https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/video_gallery-v4.glb', async function ( gltf ) {
 							const model = gltf.scene;
 
 							const mesh = model.children.find(child => child.isMesh);
-							
+							console.log(mesh)
 							const material = new THREE.MeshStandardMaterial({ 
 
 							});
 
 							mesh.material.map = texture;
 							mesh.material.emissiveMap = texture;
-							//mesh.material.emissive = 0xffffff,
-							mesh.material.envMap = scene.environment, 
-							mesh.material.emissiveIntensity = 5, 
-							mesh.material.metalness = 0, 
-							mesh.material.roughness = 1,
+							mesh.material.emissive = new THREE.Color(0xffffff),
+							//mesh.material.emissive = texture,
+
+							mesh.material.envMap = scene.environment; 
+							mesh.material.envMapRotation = 0,3.14,0;
+							mesh.material.emissiveIntensity = 1; 
+							mesh.material.metalness = 0; 
+							mesh.material.roughness = 1;
+							mesh.material.transparent = true;
+							mesh.material.dithering = true;
+							mesh.material.toneMapping = true;
+							mesh.material.premultipliedAlpha = true;
 
 							mesh.material.needsUpdate = true;
 
@@ -227,7 +186,7 @@
 				// postprocessing
 
 				const renderPass = new RenderPass( scene, camera );
-				const bloomPass = new BloomPass( 1 );
+				const bloomPass = new BloomPass( .5 );
 				const outputPass = new OutputPass();
 
 				composer = new EffectComposer( renderer );
