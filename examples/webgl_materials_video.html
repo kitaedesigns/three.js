@@ -20,7 +20,9 @@
 
 		<video id="video" loop crossOrigin="anonymous" playsinline style="display:none">
 			<source src="textures/sintel.ogv" type='video/ogg; codecs="theora, vorbis"'>
-			<source src="https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/1711554955329_ssstwitter.com_1711388588198.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+			<source src="https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/cotai-gradient-test.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+			<source src="https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/cotai-gradient-test.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+
 		</video>
 
 		<script type="importmap">
@@ -83,7 +85,7 @@
 				container = document.createElement( 'div' );
 				document.body.appendChild( container );
 
-				camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, .1, 100000 );
 				camera.position.set( - 10, 2, 10 );
 
 				//camera.position.z = 500;
@@ -102,7 +104,7 @@
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
-				renderer.toneMapping = THREE.ACESFilmicToneMapping;
+				renderer.toneMapping = THREE.NeutralToneMapping;
 				renderer.toneMappingExposure = .9;
 				container.appendChild( renderer.domElement );
 
@@ -125,35 +127,52 @@
 
 				
 				new RGBELoader()
-					.setPath( 'textures/equirectangular/' )
-					.load( 'royal_esplanade_1k.hdr', function ( envtexture ) {
+					.setPath( )
+					.load( 'https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/studio_small_08_1k.hdr', function ( envtexture ) {
 
 						envtexture.mapping = THREE.EquirectangularReflectionMapping;
 						scene.environmentRotation = 0,3.14,0;
 						scene.backgroundRotation = 0,3.14,0;
-						scene.background = envtexture;
+						scene.background = 0x101010;
 						scene.environment = envtexture;
 
 						render();
 						
+
+
+						// Load the alpha map texture
+						const textureLoader = new THREE.TextureLoader();
+						const alphaMap = textureLoader.load('https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/alpah-mask.jpg')
+						alphaMap.flipY = false;
+
 						// model
+	
 
 
-						const loader = new GLTFLoader().setPath( 'https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/video_gallery-v4.glb' );
-						loader.load( 'https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/video_gallery-v4.glb', async function ( gltf ) {
+
+						const loader = new GLTFLoader();
+
+
+						loader.load( 'https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/mgm-cotai_venue.glb', ( gltf2 )  => {
+								scene.add( gltf2.scene);
+
+
+
+						loader.load( 'https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/cotai_flat.glb',  ( gltf )  => {
+					
+
+						
+
+							//scene.add( model2 );
 							const model = gltf.scene;
 
 							const mesh = model.children.find(child => child.isMesh);
 							console.log(mesh)
-							const material = new THREE.MeshStandardMaterial({ 
 
-							});
-
+							const material = new THREE.MeshStandardMaterial({});
 							mesh.material.map = texture;
 							mesh.material.emissiveMap = texture;
 							mesh.material.emissive = new THREE.Color(0xffffff),
-							//mesh.material.emissive = texture,
-
 							mesh.material.envMap = scene.environment; 
 							mesh.material.envMapRotation = 0,3.14,0;
 							mesh.material.emissiveIntensity = 1; 
@@ -163,20 +182,24 @@
 							mesh.material.dithering = true;
 							mesh.material.toneMapping = true;
 							mesh.material.premultipliedAlpha = true;
-
 							mesh.material.needsUpdate = true;
+							mesh.material.side = THREE.DoubleSide,
+							mesh.material.alphaMap = alphaMap,
 
 							// wait until the model can be added to the scene without blocking due to shader compilation
 
-							await renderer.compileAsync( model, camera, scene );
+							//await renderer.compileAsync( model, camera, scene );
 
-							scene.add( model );
+							scene.add( model);
 
 							render();
-			
+						
+								},) 
+						
 						} );
 
 					} );
+					
 				
 
 				renderer.autoClear = false;
@@ -186,7 +209,7 @@
 				// postprocessing
 
 				const renderPass = new RenderPass( scene, camera );
-				const bloomPass = new BloomPass( .5 );
+				const bloomPass = new BloomPass( 0.25 );
 				const outputPass = new OutputPass();
 
 				composer = new EffectComposer( renderer );
@@ -199,7 +222,7 @@
 				const controls = new OrbitControls( camera, renderer.domElement );
 				controls.addEventListener( 'change', render ); // use if there is no animation loop
 				controls.minDistance = 2;
-				controls.maxDistance = 100;
+				controls.maxDistance = 500;
 				controls.target.set( 0, 0, - 0.2 );
 				controls.update();
 
