@@ -24,7 +24,7 @@
 					"three/addons/": "./jsm/",
 					"three/examples/jsm/utils/BufferGeometryUtils": "./jsm/utils/BufferGeometryUtils.js",
 					"three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.5.23/build/index.module.js",
-					"web-ifc": "https://cdn.jsdelivr.net/npm/web-ifc@0.0.36/web-ifc-api.js",
+					"web-ifc": "https://cdn.jsdelivr.net/npm/web-ifc@0.0.50/web-ifc-api.js",
 					"web-ifc-three": "https://cdn.jsdelivr.net/npm/web-ifc-three@0.0.126/IFCLoader.js"
 				}
 			}
@@ -37,6 +37,14 @@
 
 			import { IFCLoader } from 'web-ifc-three';
 			import { IFCSPACE } from 'web-ifc';
+
+
+		//	import { ImporterBase } from 'models/ifc/importerbase.js';
+
+			//const WebIFC = import("web-ifc/web-ifc-api.js");
+			//const ifcApi = new WebIFC.IfcAPI();
+
+				
 
 			let scene, camera, renderer;
 
@@ -70,9 +78,16 @@
 				const ambientLight = new THREE.AmbientLight( 0xffffee, 0.75 );
 				scene.add( ambientLight );
 
+
+
+
+
+
+				
+
 				//Setup IFC Loader
 				const ifcLoader = new IFCLoader();
-				await ifcLoader.ifcManager.setWasmPath( 'https://cdn.jsdelivr.net/npm/web-ifc@0.0.36/', true );
+				await ifcLoader.ifcManager.setWasmPath( 'https://cdn.jsdelivr.net/npm/web-ifc@0.0.50/', true );
 
 				await ifcLoader.ifcManager.parser.setupOptionalCategories( {
 					[ IFCSPACE ]: false,
@@ -82,12 +97,55 @@
 					USE_FAST_BOOLS: true
 				} );
 
-				ifcLoader.load( 'models/ifc/rac_advanced_sample_project.ifc', function ( model ) {
 
-					scene.add( model.mesh );
-					render();
 
-				} );
+
+				ifcLoader.load('https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/UE22-Base_MN_1111-LR-Existant.ifc', function ( fileContent ) {
+				
+				
+					console.log(fileContent)
+			
+
+									
+
+					for (let i = 0; i < ifcIndices.length; i += 3) {
+					const v0 = ifcIndices[i];
+					const v1 = ifcIndices[i + 1];
+					const v2 = ifcIndices[i + 2];
+					const triangle = new Triangle (
+						vertexOffset + v0,
+						vertexOffset + v1,
+						vertexOffset + v2
+					);
+					triangle.SetMaterial (materialIndex);
+					mesh.AddTriangle (triangle);   
+
+}
+							
+				
+
+								
+
+						
+						//const fileBuffer = new Uint8Array (fileContent);
+							
+
+
+						scene.add( fileContent.mesh );
+						render();
+
+					} );
+
+
+
+
+
+
+
+
+
+
+
 
 				//Renderer
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
