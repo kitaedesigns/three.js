@@ -20,7 +20,9 @@
 
 		<video id="video" loop crossOrigin="anonymous" playsinline style="display:none">
 			<source src="textures/sintel.ogv" type='video/ogg; codecs="theora, vorbis"'>
-			<source src="textures/sintel.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+			<source src="https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/cotai-gradient-test.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+			<source src="https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/cotai-gradient-test.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+
 		</video>
 
 		<script type="importmap">
@@ -35,11 +37,16 @@
 		<script type="module">
 
 			import * as THREE from 'three';
+			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 			import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 			import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 			import { BloomPass } from 'three/addons/postprocessing/BloomPass.js';
 			import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+			import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+			import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+
 
 			let container;
 
@@ -55,18 +62,19 @@
 			let windowHalfX = window.innerWidth / 2;
 			let windowHalfY = window.innerHeight / 2;
 
-			let cube_count;
+			//let cube_count;
 
-			const meshes = [],
-				materials = [],
+			// const meshes = [],
+			// 	materials = [],
 
-				xgrid = 20,
-				ygrid = 10;
+			// 	xgrid = 20,
+			// 	ygrid = 10;
 
 			const startButton = document.getElementById( 'startButton' );
 			startButton.addEventListener( 'click', function () {
 
 				init();
+				animate();
 
 			} );
 
@@ -78,21 +86,32 @@
 				container = document.createElement( 'div' );
 				document.body.appendChild( container );
 
-				camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 );
-				camera.position.z = 500;
+				camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, .1, 100000 );
+				camera.position.set( - 10, 2, 10 );
+
+				//camera.position.z = 500;
 
 				scene = new THREE.Scene();
 
-				const light = new THREE.DirectionalLight( 0xffffff, 3 );
-				light.position.set( 0.5, 1, 1 ).normalize();
+				const light = new THREE.DirectionalLight( 0xffffff, 1 );
+				light.position.set( 0.5, 10, 1 ).normalize();
 				scene.add( light );
 
-				renderer = new THREE.WebGLRenderer();
+
+				const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+				scene.add(ambientLight);
+
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
-				renderer.setAnimationLoop( animate );
+				renderer.toneMapping = THREE.NeutralToneMapping;
+				renderer.toneMappingExposure = .9;
 				container.appendChild( renderer.domElement );
 
+
+
+				
 				video = document.getElementById( 'video' );
 				video.play();
 				video.addEventListener( 'play', function () {
@@ -103,61 +122,121 @@
 
 				texture = new THREE.VideoTexture( video );
 				texture.colorSpace = THREE.SRGBColorSpace;
+				texture.flipY = true;
+				texture.minFilter = THREE.LinearFilter;
+				
 
-				//
+				// model
+				const loader = new FBXLoader();
+				loader.load( 'https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/cotai.fbx', function ( object ) {
+				object.scale.multiplyScalar(0.01); 
+				const mesh = object.children.find(child => child.isMesh);
+							console.log(object)
 
-				let i, j, ox, oy, geometry;
+							// Extract the alpha channel from the original texture
+							//const alphaMap = mesh.material.map;
+							//alphaMap.flipY = false;
 
-				const ux = 1 / xgrid;
-				const uy = 1 / ygrid;
+							const material = new THREE.MeshStandardMaterial({});
+							mesh.material.map = texture;
+							mesh.material.emissiveMap = texture;
+							mesh.material.emissive = new THREE.Color(0xffffff),
+							mesh.material.envMap = scene.environment; 
+							mesh.material.envMapRotation = 0,3.14,0;
+							mesh.material.emissiveIntensity = 1; 
+							mesh.material.metalness = 0; 
+							mesh.material.roughness = 1;
+							mesh.material.transparent = true;
+							mesh.material.dithering = true;
+							mesh.material.toneMapping = true;
+							mesh.material.premultipliedAlpha = true;
+							mesh.material.needsUpdate = true;
+							mesh.material.side = THREE.DoubleSide,
+							//mesh.material.alphaMap = alphaMap,
+					scene.add( object );
+				} );
 
-				const xsize = 480 / xgrid;
-				const ysize = 204 / ygrid;
+				
+				new RGBELoader()
+					.setPath( )
+					.load( 'https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/studio_small_01_1k.hdr', function ( envtexture ) {
 
-				const parameters = { color: 0xffffff, map: texture };
+						envtexture.mapping = THREE.EquirectangularReflectionMapping;
+						scene.environmentRotation = 0,3.14,0;
+						scene.backgroundRotation = 0,3.14,0;
+						scene.background = envtexture;
+						scene.backgroundBlurriness = .2;
+						scene.environment = envtexture;
 
-				cube_count = 0;
+						render();
+						
 
-				for ( i = 0; i < xgrid; i ++ ) {
 
-					for ( j = 0; j < ygrid; j ++ ) {
+						// Load the alpha map texture model
+						// const textureLoader = new THREE.TextureLoader();
+						// const alphaMap = textureLoader.load('https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/alpah-mask.jpg')
+						// alphaMap.flipY = false;
 
-						ox = i;
-						oy = j;
+						// model
+	
 
-						geometry = new THREE.BoxGeometry( xsize, ysize, xsize );
 
-						change_uvs( geometry, ux, uy, ox, oy );
 
-						materials[ cube_count ] = new THREE.MeshLambertMaterial( parameters );
+					// 	const loader = new GLTFLoader();
 
-						material = materials[ cube_count ];
 
-						material.hue = i / xgrid;
-						material.saturation = 1 - j / ygrid;
+					// 	loader.load( 'https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/mgm-cotai_venue.glb', ( gltf2 )  => {
+					// 			scene.add( gltf2.scene);
 
-						material.color.setHSL( material.hue, material.saturation, 0.5 );
 
-						mesh = new THREE.Mesh( geometry, material );
 
-						mesh.position.x = ( i - xgrid / 2 ) * xsize;
-						mesh.position.y = ( j - ygrid / 2 ) * ysize;
-						mesh.position.z = 0;
+					// 	loader.load( 'https://foveate3dn.nyc3.cdn.digitaloceanspaces.com/labs/mgm-cotai_screens2.glb',  ( gltf )  => {
+					
 
-						mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
+							
 
-						scene.add( mesh );
+					// 		//scene.add( model2 );
+					// 		const model = gltf.scene;
 
-						mesh.dx = 0.001 * ( 0.5 - Math.random() );
-						mesh.dy = 0.001 * ( 0.5 - Math.random() );
+					// 		const mesh = model.children.find(child => child.isMesh);
+					// 		console.log(mesh)
 
-						meshes[ cube_count ] = mesh;
+					// 		// Extract the alpha channel from the original texture
+					// 		const alphaMap = mesh.material.map;
+					// 		//alphaMap.flipY = false;
 
-						cube_count += 1;
+					// 		const material = new THREE.MeshStandardMaterial({});
+					// 		mesh.material.map = texture;
+					// 		mesh.material.emissiveMap = texture;
+					// 		mesh.material.emissive = new THREE.Color(0xffffff),
+					// 		mesh.material.envMap = scene.environment; 
+					// 		mesh.material.envMapRotation = 0,3.14,0;
+					// 		mesh.material.emissiveIntensity = 1; 
+					// 		mesh.material.metalness = 0; 
+					// 		mesh.material.roughness = 1;
+					// 		mesh.material.transparent = true;
+					// 		mesh.material.dithering = true;
+					// 		mesh.material.toneMapping = true;
+					// 		mesh.material.premultipliedAlpha = true;
+					// 		mesh.material.needsUpdate = true;
+					// 		mesh.material.side = THREE.DoubleSide,
+					// 		mesh.material.alphaMap = alphaMap,
 
-					}
+					// 		// wait until the model can be added to the scene without blocking due to shader compilation
 
-				}
+					// 		//await renderer.compileAsync( model, camera, scene );
+
+					// 		scene.add( model);
+
+					// 		render();
+						
+					// 			},) 
+						
+					// 	} );
+
+					} );
+					
+				
 
 				renderer.autoClear = false;
 
@@ -166,7 +245,7 @@
 				// postprocessing
 
 				const renderPass = new RenderPass( scene, camera );
-				const bloomPass = new BloomPass( 1.3 );
+				const bloomPass = new BloomPass( 0.25 );
 				const outputPass = new OutputPass();
 
 				composer = new EffectComposer( renderer );
@@ -176,6 +255,13 @@
 				composer.addPass( outputPass );
 
 				//
+				const controls = new OrbitControls( camera, renderer.domElement );
+				controls.addEventListener( 'change', render ); // use if there is no animation loop
+				controls.minDistance = 2;
+				controls.maxDistance = 500;
+				controls.target.set( 0, 0, - 0.2 );
+				controls.update();
+
 
 				window.addEventListener( 'resize', onWindowResize );
 
@@ -217,57 +303,65 @@
 
 			//
 
-			let h, counter = 1;
-
 			function animate() {
 
-				const time = Date.now() * 0.00005;
+				requestAnimationFrame( animate );
 
-				camera.position.x += ( mouseX - camera.position.x ) * 0.05;
-				camera.position.y += ( - mouseY - camera.position.y ) * 0.05;
+				render();
 
-				camera.lookAt( scene.position );
+			}
 
-				for ( let i = 0; i < cube_count; i ++ ) {
+			let h, counter = 1;
 
-					material = materials[ i ];
+			function render() {
 
-					h = ( 360 * ( material.hue + time ) % 360 ) / 360;
-					material.color.setHSL( h, material.saturation, 0.5 );
+				//const time = Date.now() * 0.00005;
 
-				}
+				// camera.position.x += ( mouseX - camera.position.x ) * 0.05;
+				// camera.position.y += ( - mouseY - camera.position.y ) * 0.05;
 
-				if ( counter % 1000 > 200 ) {
+				// camera.lookAt( scene.position );
 
-					for ( let i = 0; i < cube_count; i ++ ) {
+				// for ( let i = 0; i < cube_count; i ++ ) {
 
-						mesh = meshes[ i ];
+				// 	material = materials[ i ];
 
-						mesh.rotation.x += 10 * mesh.dx;
-						mesh.rotation.y += 10 * mesh.dy;
+				// 	h = ( 360 * ( material.hue + time ) % 360 ) / 360;
+				// 	material.color.setHSL( h, material.saturation, 0.5 );
 
-						mesh.position.x -= 150 * mesh.dx;
-						mesh.position.y += 150 * mesh.dy;
-						mesh.position.z += 300 * mesh.dx;
+				// }
 
-					}
+				// if ( counter % 1000 > 200 ) {
 
-				}
+				// 	for ( let i = 0; i < cube_count; i ++ ) {
 
-				if ( counter % 1000 === 0 ) {
+				// 		mesh = meshes[ i ];
 
-					for ( let i = 0; i < cube_count; i ++ ) {
+				// 		mesh.rotation.x += 10 * mesh.dx;
+				// 		mesh.rotation.y += 10 * mesh.dy;
 
-						mesh = meshes[ i ];
+				// 		mesh.position.x -= 150 * mesh.dx;
+				// 		mesh.position.y += 150 * mesh.dy;
+				// 		mesh.position.z += 300 * mesh.dx;
 
-						mesh.dx *= - 1;
-						mesh.dy *= - 1;
+				// 	}
 
-					}
+				// }
 
-				}
+				// if ( counter % 1000 === 0 ) {
 
-				counter ++;
+				// 	for ( let i = 0; i < cube_count; i ++ ) {
+
+				// 		mesh = meshes[ i ];
+
+				// 		mesh.dx *= - 1;
+				// 		mesh.dy *= - 1;
+
+				// 	}
+
+				// }
+
+				// counter ++;
 
 				renderer.clear();
 				composer.render();
